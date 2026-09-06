@@ -4,6 +4,12 @@ Advoc AI is an intelligent legal assistant platform built using Django REST Fram
 
 ---
 
+## Project Demo
+
+▶️ **Watch the Video Demonstration on YouTube:** [https://www.youtube.com/watch?v=yzv-nw8T0xY](https://www.youtube.com/watch?v=yzv-nw8T0xY)
+
+---
+
 ## Key Features
 
 - **Conversational Document Generator**: Interactively build customized legal contracts, agreements, and notices using Gemini AI. Supports real-time streaming responses and signature attachment embedding.
