@@ -225,11 +225,11 @@ const ChatList = () => {
                         <p className="text-green-400 text-sm">Status: accepted</p>
                       </div>
                       <div className="flex gap-2">
-                        {item.meeting_link && (
+                        {(item.meet_link || item.meeting_link) && (
                           <Button
                             size="sm"
                             className="bg-green-600 hover:bg-green-700"
-                            onClick={() => window.open(item.meeting_link, '_blank')}
+                            onClick={() => window.open(item.meet_link || item.meeting_link, '_blank')}
                           >
                             <Video className="w-4 h-4 mr-1" />
                             Join Meet

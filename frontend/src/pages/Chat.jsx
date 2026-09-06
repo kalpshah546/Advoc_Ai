@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/Card";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/Input";
-import { Send, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Video } from 'lucide-react';
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -118,6 +118,33 @@ const Chat = () => {
             {messages.map((msg) => {
               const senderId = msg.sender?.id || msg.sender;
               const isOwn = String(senderId) === String(user?.id);
+
+              if (msg.message_type === 'meet_link') {
+                return (
+                  <div key={msg.id} className="flex justify-center my-3">
+                    <div className="bg-emerald-950/50 border border-emerald-500/40 p-4 rounded-xl max-w-sm w-full flex flex-col items-center gap-2.5 text-center shadow-lg">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">Google Meet Consultation</p>
+                        <p className="text-gray-400 text-xs mt-0.5">Click below to join the video session</p>
+                      </div>
+                      <a
+                        href={msg.message}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 w-full py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors shadow-md"
+                      >
+                        <Video className="w-4 h-4" />
+                        Join Google Meet
+                      </a>
+                      <span className="text-[10px] text-gray-500">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                   <div

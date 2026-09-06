@@ -261,10 +261,10 @@ const LawyerDashboard = () => {
               )}
               {connection.status === "accepted" && (
                 <div className="flex gap-2 flex-wrap">
-                  {connection.meeting_link && (
+                  {(connection.meet_link || connection.meeting_link) && (
                     <Button
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => window.open(connection.meeting_link, '_blank')}
+                      onClick={() => window.open(connection.meet_link || connection.meeting_link, '_blank')}
                     >
                       <Video className="w-4 h-4 mr-2" />
                       Join Meet
