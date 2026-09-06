@@ -25,10 +25,7 @@ export default function Navbar() {
 
   const navLinks = [
     { to: "/", label: "Home" },
-    { to: "/document-analyser", label: "Document Analyzer" },
-    { to: "/document-creation", label: "Document Generator" },
     { to: "/lawyer-connect", label: "Connect" },
-    { to: "/my-documents", label: "My Documents" },
     { to: "/chat", label: "Chat", requiresAuth: true },
   ];
 

@@ -63,6 +63,8 @@ class LawyerConnectionRequest(Document):
         choices=('pending', 'accepted', 'declined', 'withdrawn'),
     )
     preferred_time = DateTimeField(required=False, null=True)
+    meet_link = StringField(default='')
+    meeting_link = StringField(default='')
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
 
@@ -80,3 +82,23 @@ class LawyerConnectionRequest(Document):
     def save(self, *args, **kwargs):
         self.updated_at = datetime.utcnow()
         return super().save(*args, **kwargs)
+
+
+class Rating(Document):
+    """Client ratings for lawyers after an accepted connection"""
+
+    connection_request = ReferenceField(LawyerConnectionRequest, required=True, reverse_delete_rule=CASCADE)
+    client = ReferenceField(User, required=True, reverse_delete_rule=CASCADE)
+    lawyer = ReferenceField(User, required=True, reverse_delete_rule=CASCADE)
+    score = IntField(required=True, min_value=1, max_value=5)
+    comment = StringField(default='')
+    created_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'lawyer_ratings',
+        'db_alias': 'default',
+        'indexes': [
+            {'fields': ['connection_request'], 'unique': True},
+            'lawyer',
+        ],
+    }

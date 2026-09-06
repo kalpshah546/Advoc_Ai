@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { User, Mail, Phone, GraduationCap, Building, Clock, DollarSign } from "lucide-react";
+import { User, Mail, Phone, GraduationCap, Building, Clock, DollarSign, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/Components/ui/Card";
 import { Label } from "@/Components/ui/Label";
 import axios from "../api/axios";
@@ -13,14 +13,19 @@ const LawyerProfile = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const [profileData, setProfileData] = useState(null);
+  const [ratingsData, setRatingsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`api/lawyer/${id}/`);
-        setProfileData(response.data);
+        const [profileRes, ratingsRes] = await Promise.all([
+          axios.get(`api/lawyer/${id}/`),
+          axios.get(`api/lawyer/${id}/ratings/`),
+        ]);
+        setProfileData(profileRes.data);
+        setRatingsData(ratingsRes.data);
       } catch (err) {
         console.error("Failed to load lawyer profile:", err);
         toast.error(err.response?.data?.error || "Unable to load lawyer profile.");
@@ -131,6 +136,20 @@ const LawyerProfile = () => {
             <CardDescription className="text-gray-400">
               {profileData.education || profileData.specializations?.join(', ') || 'Legal Professional'}
             </CardDescription>
+            {ratingsData && ratingsData.total_ratings > 0 && (
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-5 h-5 ${star <= Math.round(ratingsData.average_score) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-yellow-400 font-semibold">{ratingsData.average_score}</span>
+                <span className="text-gray-500 text-sm">({ratingsData.total_ratings} reviews)</span>
+              </div>
+            )}
             <div className="mt-4 flex justify-center">
               <Button onClick={openConnectModal} className="bg-blue-600 hover:bg-blue-700 text-white">
                 Connect with {lawyerUser?.name || 'Lawyer'}

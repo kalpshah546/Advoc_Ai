@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/Components/ui/Card";
 import { Button } from "@/Components/ui/button";
-import { BadgeCheck, Clock, ShieldAlert, MessageSquare } from "lucide-react";
+import { BadgeCheck, Clock, ShieldAlert, MessageSquare, Star, Video } from "lucide-react";
 
 const statusColors = {
   pending: "text-yellow-400",
@@ -34,6 +34,7 @@ const LawyerDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
+  const [ratingsData, setRatingsData] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -48,6 +49,11 @@ const LawyerDashboard = () => {
       try {
         const response = await axios.get("api/lawyer/dashboard/");
         setDashboard(response.data);
+        const lawyerId = response.data.user?.id;
+        if (lawyerId) {
+          const ratingsRes = await axios.get(`api/lawyer/${lawyerId}/ratings/`);
+          setRatingsData(ratingsRes.data);
+        }
       } catch (err) {
         console.error("Failed to load lawyer dashboard:", err);
         setError(err.response?.data?.error || "Unable to load lawyer dashboard.");
@@ -67,6 +73,11 @@ const LawyerDashboard = () => {
       // Reload dashboard to get updated data including new chat conversations
       const dashboardResponse = await axios.get("api/lawyer/dashboard/");
       setDashboard(dashboardResponse.data);
+      const lawyerId = dashboardResponse.data.user?.id;
+      if (lawyerId) {
+        const ratingsRes = await axios.get(`api/lawyer/${lawyerId}/ratings/`);
+        setRatingsData(ratingsRes.data);
+      }
       
       // If accepted, show option to open chat
       if (status === 'accepted') {
@@ -142,6 +153,31 @@ const LawyerDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {ratingsData && (
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center gap-4">
+            <Star className="w-8 h-8 text-yellow-400" />
+            <div>
+              <p className="text-muted-foreground text-sm">Your Rating</p>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${star <= Math.round(ratingsData.average_score) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-2xl font-bold text-foreground">
+                  {ratingsData.total_ratings > 0 ? ratingsData.average_score : '—'}
+                </p>
+                <p className="text-sm text-muted-foreground">({ratingsData.total_ratings} reviews)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
@@ -224,7 +260,17 @@ const LawyerDashboard = () => {
                 </div>
               )}
               {connection.status === "accepted" && (
-                <Button
+                <div className="flex gap-2 flex-wrap">
+                  {connection.meeting_link && (
+                    <Button
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => window.open(connection.meeting_link, '_blank')}
+                    >
+                      <Video className="w-4 h-4 mr-2" />
+                      Join Meet
+                    </Button>
+                  )}
+                  <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={async () => {
                     try {
@@ -245,9 +291,8 @@ const LawyerDashboard = () => {
                       // Fallback: search all conversations
                       console.log('Fallback: searching all conversations');
                       const allConvsResponse = await axios.get('api/chat/conversations/');
-                      console.log('All conversations:', allConvsResponse.data);
-                      
-                      const conv = allConvsResponse.data.find(c => {
+                      const allConvs = allConvsResponse.data.results || allConvsResponse.data || [];
+                      const conv = allConvs.find(c => {
                         const matchesConnectionId = c.connection_request_id === connection.id;
                         const matchesUsers = c.client?.id === connection.client?.id && 
                                            c.lawyer?.id === connection.lawyer?.id;
@@ -272,6 +317,7 @@ const LawyerDashboard = () => {
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Open Chat
                 </Button>
+                </div>
               )}
             </div>
           ))}

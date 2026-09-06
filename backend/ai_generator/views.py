@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import cloudinary.uploader
 
-from .utils import get_gemini_response # Import the new utility function
+from .utils import get_gemini_response, GeminiQuotaExhaustedError # Import utility function and custom exception
 
 
 @api_view(['POST'])
@@ -51,6 +51,9 @@ def chat(request):
             # It's a question
             return Response({'type': 'question', 'text': response_text})
 
+    except GeminiQuotaExhaustedError as e:
+        print(f"Quota error in chat view: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         print(f"Error in chat view: {e}")
         print(f"Type of error: {type(e)}")

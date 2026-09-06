@@ -4,19 +4,32 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from mongoengine import DoesNotExist, errors
 from authentication.models import User
-from .models import LawyerProfile, LawyerConnectionRequest
+from .models import LawyerProfile, LawyerConnectionRequest, Rating
 from chat.models import ChatConversation, ChatMessage
 import cloudinary
 import cloudinary.uploader
 from uuid import uuid4
 from datetime import datetime
+import random
+import string
 
 from .serializers import (
     LawyerProfileSerializer,
     LawyerConnectionRequestSerializer,
     LawyerConnectionStatusSerializer,
+    RatingSerializer,
+    RatingCreateSerializer,
 )
 from authentication.serializers import UserSerializer
+
+
+def _generate_meet_link():
+    """Generate a Google Meet-style link when a connection is accepted."""
+    chars = string.ascii_lowercase
+    part1 = ''.join(random.choices(chars, k=3))
+    part2 = ''.join(random.choices(chars, k=4))
+    part3 = ''.join(random.choices(chars, k=3))
+    return f"https://meet.google.com/{part1}-{part2}-{part3}"
 
 
 @api_view(['GET'])
@@ -131,7 +144,7 @@ def connect_with_lawyer_view(request, lawyer_id):
             message=message,
             preferred_time=preferred_time,
         )
-    except mongoengine.errors.ValidationError as ve:
+    except errors.ValidationError as ve:
         print(f"ERROR: MongoEngine Validation Error during connection request creation: {ve.errors}")
         return Response({'error': f"Validation error: {ve.errors}"}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -192,6 +205,11 @@ def lawyer_connection_update_view(request, connection_id):
     new_status = serializer.validated_data['status']
     connection_request.status = new_status
     connection_request.message = serializer.validated_data.get('message', connection_request.message)
+    if new_status == 'accepted':
+        if not connection_request.meet_link:
+            link = connection_request.meeting_link or _generate_meet_link()
+            connection_request.meet_link = link
+            connection_request.meeting_link = link
     connection_request.save()
 
     # Create chat conversation when lawyer accepts
@@ -218,6 +236,16 @@ def lawyer_connection_update_view(request, connection_id):
                     message_type='system',
                 )
                 print(f"Created welcome message for conversation {chat_conversation.id}")
+
+                # Send Google Meet link message
+                if connection_request.meet_link:
+                    ChatMessage.objects.create(
+                        conversation=chat_conversation,
+                        sender=request.user,
+                        message=connection_request.meet_link,
+                        message_type='meet_link',
+                    )
+                    print(f"Created meet_link message for conversation {chat_conversation.id}")
             except Exception as e:
                 print(f"Error creating chat conversation: {e}")
                 import traceback
@@ -257,3 +285,58 @@ def connection_requests_list_view(request):
     connection_requests = LawyerConnectionRequest.objects(client=user).order_by('-created_at')
     serializer = LawyerConnectionRequestSerializer(connection_requests, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_rating_view(request):
+    """Allow a client to rate a lawyer after an accepted connection."""
+    serializer = RatingCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    connection_request = LawyerConnectionRequest.objects(
+        id=serializer.validated_data['connection_request_id']
+    ).first()
+    if not connection_request:
+        return Response({'error': 'Connection request not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if str(connection_request.client.id) != str(request.user.id):
+        return Response({'error': 'Only the client on this connection can submit a rating.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if connection_request.status != 'accepted':
+        return Response({'error': 'You can only rate an accepted connection.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if Rating.objects(connection_request=connection_request).first():
+        return Response({'error': 'You have already rated this connection.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    rating = Rating.objects.create(
+        connection_request=connection_request,
+        client=request.user,
+        lawyer=connection_request.lawyer,
+        score=serializer.validated_data['score'],
+        comment=serializer.validated_data.get('comment', ''),
+    )
+    return Response(RatingSerializer(rating).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def lawyer_ratings_view(request, lawyer_id):
+    """List a lawyer's ratings and average score."""
+    try:
+        lawyer = User.objects(id=lawyer_id, role='lawyer').first()
+    except DoesNotExist:
+        lawyer = None
+    if not lawyer:
+        return Response({'error': 'Lawyer not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    ratings = Rating.objects(lawyer=lawyer).order_by('-created_at')
+    scores = [r.score for r in ratings]
+    average_score = round(sum(scores) / len(scores), 1) if scores else 0
+
+    return Response({
+        'ratings': RatingSerializer(ratings, many=True).data,
+        'average_score': average_score,
+        'total_ratings': len(scores),
+    }, status=status.HTTP_200_OK)

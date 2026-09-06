@@ -18,6 +18,9 @@ from mongoengine import DoesNotExist
 from utils.gemini_client import get_gemini_client, _get_llm_model_name # Import from centralized utility
 
 
+logger = logging.getLogger(__name__)
+
+
 # Import generalized false positive prevention framework
 try:
     from .false_positive_prevention import (
@@ -40,8 +43,6 @@ try:
 except ImportError:
     SOLUTION_REFINEMENT_AVAILABLE = False
     logger.warning("Solution refinement module not available")
-
-logger = logging.getLogger(__name__)
 
 
 

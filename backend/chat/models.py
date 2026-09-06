@@ -43,7 +43,7 @@ class ChatMessage(Document):
     message_type = StringField(
         max_length=32,
         default='text',
-        choices=('text', 'document', 'system'),
+        choices=('text', 'document', 'system', 'meet_link'),
     )
     document_id = StringField(max_length=255, default='')  # Reference to document if shared
     document_title = StringField(max_length=255, default='')

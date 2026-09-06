@@ -27,6 +27,12 @@ venv/
 db.sqlite3
 /media
 /static
+backend/staticfiles/
+frontend/wireframes/
+
+# Environment
+.env
+backend/.env
 
 # OS generated files
 .DS_Store

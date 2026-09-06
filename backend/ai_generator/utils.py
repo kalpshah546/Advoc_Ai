@@ -3,6 +3,11 @@ import json
 from utils.gemini_client import get_gemini_client, _get_llm_model_name # Centralized Gemini client
 import google.api_core.exceptions
 
+class GeminiQuotaExhaustedError(Exception):
+    """Exception raised when Gemini API quota is exhausted."""
+    pass
+
+
 def get_gemini_response(user_message, document_context=""):
     """
     Generates an AI response using the Gemini API based on the user message and document context.
@@ -53,6 +58,8 @@ def get_gemini_response(user_message, document_context=""):
         return response_text
     except google.api_core.exceptions.ResourceExhausted as e:
         error_message = f"Quota exceeded for Gemini API. Please try again later. Details: {e}"
+        print(f"ERROR: {error_message}")
+        raise GeminiQuotaExhaustedError("Quota exceeded for Gemini API. Please try again later.")
 
 
 def get_gemini_response_stream(user_message, document_context=""):
