@@ -54,4 +54,7 @@ frontend/.early.coverage/
 backend/__pycache__/
 backend/db.sqlite3
 backend/.early.coverage/
-__pycache__/
+# Documentation / Walkthrough
+WALKTHROUGH.md
+walkthrough.md
+
